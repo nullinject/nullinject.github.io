@@ -1,0 +1,12 @@
+{
+  "name": "void-prompt-homepage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "preview": "node preview.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "markdown-it": "15.0.2" }
+}
