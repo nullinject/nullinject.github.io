@@ -2,6 +2,11 @@
   "name": "Void Prompt",
   "username": "nullinject",
   "year": 2026,
+  "analytics": {
+    "enabled": true,
+    "site": "https://nullinject.goatcounter.com",
+    "productionHost": "nullinject.github.io"
+  },
   "description": "关注 Prompt Injection、Agent 信任边界与取证自动化，记录研究、实验，以及工具开发。",
   "projects": [
     { "name": "LLM Security Research", "repo": "llm-security-research", "description": "提示注入、RAG 与 Agent 信任边界的案例分析。" },

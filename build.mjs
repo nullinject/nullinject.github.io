@@ -9,6 +9,13 @@ if (out === root || out.startsWith(path.join(root, 'content') + path.sep)) {
   throw new Error('Build output must be a separate directory.');
 }
 const site = JSON.parse(await readFile(path.join(root, 'site.json'), 'utf8'));
+const analytics = site.analytics || { enabled: false, site: '', productionHost: `${site.username}.github.io` };
+if (analytics.site && !/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.goatcounter\.com$/.test(analytics.site)) {
+  throw new Error('Analytics site must be an HTTPS GoatCounter account URL without a path.');
+}
+if (analytics.enabled && !analytics.site) throw new Error('An enabled analytics site needs its account URL.');
+if (!/^[a-z0-9.-]+$/.test(analytics.productionHost)) throw new Error('Invalid analytics production host.');
+const counterPaths = ['/', '/projects.html', '/articles.html', '/about.html', ...site.posts.map(p => `/articles/${p.slug}.html`)];
 const escape = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const arrow = (external = false) => `<svg class="arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${external ? '<path d="M6 18 18 6M6 6h12v12"/>' : '<path d="M4 12h15m-6-6 6 6-6 6"/>'}</svg>`;
 const github = `https://github.com/${site.username}`;
@@ -22,12 +29,14 @@ for (const post of site.posts) {
   slugs.add(post.slug);
 }
 
-function shell({ title, active, body, prefix = './', description = site.description }) {
+function shell({ title, active, body, pagePath, prefix = './', description = site.description }) {
   const nav = [['首页', 'index.html', 'home'], ['项目', 'projects.html', 'projects'], ['文章', 'articles.html', 'articles'], ['关于', 'about.html', 'about']];
+  const counter = `<span class="site-count" title="各页面访问次数之和，按统计服务的会话规则去重；不含阅读时长事件。">累计访问 <span data-site-count>${analytics.enabled ? '加载中' : '暂未启用'}</span></span>`;
+  const analyticsScript = `<script type="module" src="${prefix}assets/analytics.js" data-analytics-site="${analytics.enabled ? escape(analytics.site) : ''}" data-production-host="${escape(analytics.productionHost)}" data-page-path="${escape(pagePath)}" data-counter-paths="${escape(JSON.stringify(counterPaths))}"></script>`;
   return `<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>${escape(title)} · ${escape(site.name)}</title><meta name="description" content="${escape(description)}"><meta name="referrer" content="strict-origin-when-cross-origin"><link rel="icon" href="${prefix}assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="${prefix}assets/site.css"><script src="${prefix}assets/site.js" defer></script></head>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>${escape(title)} · ${escape(site.name)}</title><meta name="description" content="${escape(description)}"><meta name="referrer" content="strict-origin-when-cross-origin"><link rel="icon" href="${prefix}assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="${prefix}assets/site.css"><script src="${prefix}assets/site.js" defer></script>${analyticsScript}</head>
 <body><a class="skip-link" href="#main">跳到正文</a><div class="site-wrap"><header class="site-header"><a class="brand" href="${prefix}index.html" aria-label="${escape(site.name)} 首页"><span>${escape(site.name)}</span><span class="handle">${escape(site.username)}</span></a><nav class="nav" aria-label="主导航">${nav.map(([label, url, key]) => `<a href="${prefix}${url}"${active === key ? ' aria-current="page"' : ''}>${label}</a>`).join('')}${external(github, 'GitHub', 'nav-github')}</nav></header>
-<main id="main">${body}</main><footer class="site-footer"><span>© ${site.year} ${escape(site.name)}</span><div>${external(github, 'GitHub')}<a href="${prefix}about.html">关于</a></div></footer></div></body></html>`;
+<main id="main">${body}</main><footer class="site-footer"><div class="footer-meta"><span>© ${site.year} ${escape(site.name)}</span>${counter}</div><div>${external(github, 'GitHub')}<a href="${prefix}about.html">关于</a></div></footer></div></body></html>`;
 }
 
 function projectRows(projects) {
@@ -50,7 +59,7 @@ const about = `<section class="page-intro"><h1>关于我</h1><p>${escape(site.na
 await mkdir(path.join(out, 'articles'), { recursive: true });
 await cp(path.join(root, 'assets'), path.join(out, 'assets'), { recursive: true });
 for (const [file, title, active, body] of [['index.html', '首页', 'home', home], ['projects.html', '项目', 'projects', projects], ['articles.html', '研究笔记', 'articles', articles], ['about.html', '关于', 'about', about]]) {
-  await writeFile(path.join(out, file), shell({ title, active, body }));
+  await writeFile(path.join(out, file), shell({ title, active, body, pagePath: file === 'index.html' ? '/' : `/${file}` }));
 }
 
 const md = new MarkdownIt({ html: false, linkify: false, typographer: false });
@@ -85,9 +94,10 @@ for (const post of site.posts) {
   const sourceUrl = post.sourceFile ? `https://github.com/${site.source.repository}/blob/${site.source.commit}/${encodeURIComponent(post.sourceFile)}` : null;
   const historyUrl = post.sourceFile ? `https://github.com/${site.source.repository}/commits/main/${encodeURIComponent(post.sourceFile)}` : null;
   const toc = `<details class="article-toc"><summary>文章目录</summary><nav aria-label="文章目录"><ol>${env.toc.map(t => `<li><a href="#${t.id}">${escape(t.label)}</a></li>`).join('')}</ol></nav></details>`;
-  const body = `<div class="article-page"><a class="back-link" href="../articles.html">${arrow()}所有文章</a><header class="article-header"><p class="category">${escape(post.category)}</p><h1>${escape(post.title)}</h1><p class="article-deck">${escape(post.description)}</p><div class="article-provenance"><span>${escape(site.name)} · 研究笔记</span>${sourceUrl ? external(sourceUrl, 'GitHub 原文') : ''}</div></header>${toc}<article class="prose" aria-label="文章正文">${sourceUrl ? `<p class="original-title">原文标题：${escape(firstHeading?.[1] || post.title)}</p>` : ''}${prose}</article><div class="article-end"><a class="text-link" href="../articles.html">${arrow()}返回文章列表</a>${historyUrl ? external(historyUrl, '查看修订记录', 'text-link') : ''}</div></div>`;
-  await writeFile(path.join(out, 'articles', `${post.slug}.html`), shell({ title: post.title, description: post.description, active: 'articles', prefix: '../', body }));
+  const readingCount = `<span class="reading-count" title="文章访问次数，重复访问按统计服务的会话规则去重；不代表读完。">阅读 <span data-article-count>${analytics.enabled ? '加载中' : '暂未启用'}</span></span>`;
+  const body = `<div class="article-page"><a class="back-link" href="../articles.html">${arrow()}所有文章</a><header class="article-header"><p class="category">${escape(post.category)}</p><h1>${escape(post.title)}</h1><p class="article-deck">${escape(post.description)}</p><div class="article-provenance"><span>${escape(site.name)} · 研究笔记</span>${readingCount}${sourceUrl ? external(sourceUrl, 'GitHub 原文') : ''}</div></header>${toc}<article class="prose" aria-label="文章正文">${sourceUrl ? `<p class="original-title">原文标题：${escape(firstHeading?.[1] || post.title)}</p>` : ''}${prose}</article><div class="article-end"><a class="text-link" href="../articles.html">${arrow()}返回文章列表</a>${historyUrl ? external(historyUrl, '查看修订记录', 'text-link') : ''}</div></div>`;
+  await writeFile(path.join(out, 'articles', `${post.slug}.html`), shell({ title: post.title, description: post.description, active: 'articles', prefix: '../', body, pagePath: `/articles/${post.slug}.html` }));
 }
-await writeFile(path.join(out, '404.html'), shell({ title: '页面未找到', active: '', prefix: '/', body: '<section class="page-intro"><h1>这一页还没有写下。</h1><p>链接可能已更新，你可以从首页或文章列表继续阅读。</p><a class="button" href="/">回到首页</a></section>' }));
+await writeFile(path.join(out, '404.html'), shell({ title: '页面未找到', active: '', prefix: '/', pagePath: '/404.html', body: '<section class="page-intro"><h1>这一页还没有写下。</h1><p>链接可能已更新，你可以从首页或文章列表继续阅读。</p><a class="button" href="/">回到首页</a></section>' }));
 await writeFile(path.join(out, '.nojekyll'), '');
 console.log(`Built ${site.posts.length + 5} static pages in ${out}`);
