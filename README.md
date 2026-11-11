@@ -2,11 +2,20 @@
 
 [Visit the website](https://nullinject.github.io/)
 
-AI 安全、数字取证、Prompt Injection、Agent 信任边界与取证自动化的个人主页及研究笔记。
+AI 安全研究、取证自动化与安全工具开发的个人主页及研究笔记。
+
+## 网站导航
+
+- 首页：研究方向、代表项目与研究笔记，以 MemoryAI Forensics 的公开展示为作品入口。
+- 项目：按研究与展示、安全与取证工具、其他工程项目组织七个公开仓库，标明项目类型。
+- 研究笔记：保留三篇历史文章与原有链接，支持分类筛选、文章目录、原文与修订记录跳转。
+- 关于：研究方向、工作方法及 GitHub 交流入口。
+
+项目列表包含 MemoryAI Forensics、LLM Security Research、ShadowProbe、Xiaomi Photo Recovery、CTF AWD Toolkit、CPR Excel Companion 和 ShiftPaw。MemoryAI 为公开展示仓库，CPR Excel Companion 为实验性项目；具体能力与使用条件以各项目文档为准。
 
 ## 内容与发布
 
-- `site.json`：个人资料、项目列表、文章元数据。
+- `site.json`：个人资料、带 `kind` 与 `group` 的项目列表、文章元数据及 `editorNote` 编辑说明。
 - `content/`：Markdown 文章正文。
 - `assets/`：网页样式、分类筛选与图标。
 - `build.mjs`：静态网站生成器。
@@ -30,6 +39,10 @@ npm run preview
 
 在 `content/` 添加 Markdown 文件，并在 `site.json` 的 `posts` 数组添加对应的 `slug`、`title`、`category` 和 `description`。`slug` 必须与 Markdown 文件名一致，使用小写字母、数字和连字符。新写的独立文章可以省略 `sourceFile`。
 
+`site.json` 的 `updated` 仅记录网站内容编辑日期，不是文章发表日期、实验日期或项目复测日期。历史文章可通过 `editorNote` 说明证据、版本或披露状态的适用范围，保留正文、原有 slug 与来源版本。
+
+项目使用 `kind` 标明公开展示、研究文档或工具类型；`group` 分为 `research`、`tools` 与 `other`。调整文案时不要把展示仓库描述为完整开源实现，也不要把实验项目描述为已验证的生产版本。
+
 发布前生成网站文件：
 
 ```sh
@@ -41,6 +54,10 @@ SITE_OUTPUT=docs npm run build
 ## 来源与边界
 
 最初三篇文章来自自己的公开仓库 `nullinject/llm-security-research`，固定版本为 `d0b74f27fe4bff19cda9ca0b99da64d2b3e4529f`，获取日期 2026-10-07。保留原文标题及正文，列表使用简短标题；网页提供原文和修订记录链接。本次网站制作没有独立复测正文中的技术结论或厂商状态。
+
+文章页的编辑说明补充历史证据与版本边界，不修改历史正文或重新认定漏洞。文中当时的厂商响应状态、模型行为和评分不应直接视为当前版本的结论。
+
+MemoryAI 产品截图来自本人的公开仓库 [MemoryAI-Forensics-Showcase](https://github.com/nullinject/MemoryAI-Forensics-Showcase/tree/main/assets)。原始分析界面素材为 [`assets/demo-analysis.png`](https://github.com/nullinject/MemoryAI-Forensics-Showcase/blob/main/assets/demo-analysis.png)，在本站保存为 `assets/memoryai-analysis.png`；图片用于说明产品界面，不代表本次网站更新重新验证了产品功能。
 
 Markdown 中的 HTML 作为文本显示，不执行脚本。网站本身由 GitHub Pages 托管，不加载外部字体。启用统计后会加载 GoatCounter 脚本，并向指定统计账号发送匿名访问与阅读事件。
 
