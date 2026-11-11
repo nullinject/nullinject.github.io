@@ -259,6 +259,13 @@ img { display: block; max-width: 100%; }
   .focus dd { font-size: 11px; }
   .featured-copy h3 { font-size: 25px; overflow-wrap: anywhere; }
 }
+@media (max-width: 480px) {
+  .focus dl { grid-template-columns: 1fr; gap: 0; }
+  .focus dl > div { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .focus dl > div:last-child { padding-bottom: 0; border-bottom: 0; }
+  .focus dt { font-size: 16px; margin: 0; }
+  .focus dd { font-size: 13px; line-height: 1.75; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; }
